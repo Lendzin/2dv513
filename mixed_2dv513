@@ -1,0 +1,197 @@
+
+$handle = fopen("./RC_2011-07", "r");
+$count = 0;
+$actualCount = 0;
+$countDeleted = 0;
+$countInserts = 0;
+$dumpCount = 0;
+$insertedComments = "";
+$insertCommentsStatement = "";
+$database = new \model\Database();
+$query1 = "SELECT COUNT(*) FROM comments WHERE author = 'BlueRock'";
+$query2 = "SELECT COUNT(1) AS entries, DATE(created_utc) AS date FROM comments 
+WHERE subreddit_id = 't5_2qqlo' GROUP BY DATE(created_utc)";
+$query3 = "SELECT COUNT(*) FROM comments WHERE LOCATE('lol',body)>0";
+$query4 = 'SELECT subreddit FROM comments WHERE author IN 
+(SELECT author FROM comments WHERE link_id = "t3_ieqio") GROUP BY subreddit';
+$query4_2 = 'SELECT author, subreddit FROM comments WHERE author IN
+(SELECT author FROM comments WHERE link_id = "t3_ieqio") GROUP BY author, subreddit';
+$query5_b = "(SELECT author, SUM(score) as combinedScore FROM comments GROUP BY author ORDER BY combinedScore DESC LIMIT 1)
+UNION
+(SELECT author, SUM(score) as combinedScore FROM comments GROUP BY author ORDER BY combinedScore ASC LIMIT 1)";
+$query5 = "(SELECT author, b.score FROM
+(SELECT author, SUM(score) AS score FROM comments GROUP BY author) AS a
+RIGHT JOIN
+(SELECT SUM(score) AS score FROM comments GROUP BY author ORDER BY score DESC LIMIT 1) AS b
+ON a.score = b.score) 
+UNION 
+(SELECT author, d.score FROM
+(SELECT author, SUM(score) AS score FROM comments GROUP BY author) AS c 
+RIGHT JOIN
+(SELECT SUM(score) AS score FROM comments GROUP BY author ORDER BY score ASC LIMIT 1) AS d
+ON c.score = d.score)";
+$query6_b = "(SELECT subreddit, MAX(score) as maximum FROM comments GROUP BY subreddit ORDER BY maximum DESC LIMIT 1)
+UNION
+(SELECT subreddit, MIN(score) as minimum FROM comments GROUP BY subreddit ORDER BY minimum ASC LIMIT 1)";
+$query6 = "(SELECT subreddit, b.score FROM 
+(SELECT subreddit, MAX(score) as score FROM comments GROUP BY subreddit) AS a 
+RIGHT JOIN
+(SELECT MAX(score) AS score FROM comments) AS b ON a.score = b.score)
+UNION
+(SELECT subreddit, b.score FROM
+(SELECT subreddit, MIN(score) as score FROM comments GROUP BY subreddit) AS a 
+RIGHT JOIN
+(SELECT MIN(score) AS score FROM comments) AS b
+ON a.score = b.score)";
+$query7 = 'SELECT * FROM (SELECT author FROM comments WHERE link_id IN
+(SELECT link_id FROM comments WHERE author ="bumblingmumbling" GROUP BY link_id) 
+GROUP BY author) AS derived WHERE author != "bumblingmumbling"';
+$query8 = "SELECT author FROM
+(SELECT author, COUNT(subreddit) AS NoOfSubreddits FROM comments GROUP BY author) AS counted
+WHERE NoOfSubreddits = 1";
+// $executionTime = runQuery($database, $query6_b);
+// echo "ExecutionTime: " . $executionTime . " seconds.";
+// $executionTimeOld = $executionTime;
+// $executionTime = runQuery($database, $query2) - $executionTimeOld;
+// echo "ExecutionTime: " . $executionTime . " seconds.";
+// $executionTimeOld = $executionTime;
+// $executionTime = runQuery($database, $query3) - $executionTimeOld;
+// echo "ExecutionTime: " . $executionTime . " seconds.";
+// $executionTimeOld = $executionTime;
+// $executionTime = runQuery($database, $query4) - $executionTimeOld;
+// echo "ExecutionTime: " . $executionTime . " seconds.";
+// $executionTimeOld = $executionTime;
+// $executionTime = runQuery($database, $query5) - $executionTimeOld;
+// echo "ExecutionTime: " . $executionTime . " seconds.";
+// $executionTimeOld = $executionTime;
+// $executionTime = runQuery($database, $query6) - $executionTimeOld;
+// echo "ExecutionTime: " . $executionTime . " seconds.";
+// $executionTimeOld = $executionTime;
+// $executionTime = runQuery($database, $query7) - $executionTimeOld;
+// echo "ExecutionTime: " . $executionTime . " seconds.";
+// $executionTimeOld = $executionTime;
+// $executionTime = runQuery($database, $query8) - $executionTimeOld;
+// echo "ExecutionTime: " . $executionTime . " seconds.";
+
+
+
+
+
+function runQuery($database,$query) {
+    $db = $database->startMySQLi();
+    $result = $db->query($query) or die;
+    $database->killMySQLi($db);
+    $executionTime = microtime(true) - $_SERVER["REQUEST_TIME_FLOAT"];
+    $count = 0;
+    while ($row = $result->fetch_assoc())
+        {
+            if ($count < 1) {
+            var_dump($row);
+            }
+        $count++;
+        }
+    echo "Amount of rows : " . $count . "<br>";
+    return $executionTime;
+}
+
+
+if ($handle) {
+    // $insertedParents = "";
+    // $insertedLinks = "";
+    // $insertedAuthors = "";
+    // $insertedSubreddits = "";
+    while (($line = fgets($handle)) !== false) { // need to change value
+        $actual_line = (json_decode($line));
+        if ($actual_line->body !== "[deleted]") {
+            if ($actual_line->author !== "[deleted]") {
+                $seconds = (int)$actual_line->created_utc;
+                $timestamp = date("Y-m-d H:i:s", $seconds);
+                $newBody = replaceString($actual_line->body);
+                $insertedComments .= "('{$actual_line->id}', '{$actual_line->name}', '{$actual_line->score}', '{$timestamp}', '{$newBody}', '{$actual_line->parent_id}', '{$actual_line->link_id}', '{$actual_line->author}', '{$actual_line->subreddit_id}', '{$actual_line->subreddit}'), ";
+                // $insertedParents .= "('{$actual_line->parent_id}', '{$actual_line->id}'), ";
+                // $insertedAuthors .= "('{$actual_line->author}', '{$actual_line->id}'), ";
+                // $insertedLinks .= "('{$actual_line->link_id}','{$actual_line->id}'), ";
+                // $insertedSubreddits .= "('{$actual_line->subreddit_id}', '{$actual_line->subreddit}', '{$actual_line->id}'), ";
+                $actualCount++;
+            } else {
+                $countDeleted++;
+            }
+           } else {
+                $countDeleted++;
+           }
+        $dumpCount++;
+        $count++;
+        if ($dumpCount === 150000) {  // need to change value 
+            $countInserts = doDump($database, $insertedComments, $countInserts);
+            $insertedComments = "";
+            $dumpCount = 0;
+        }
+    }
+    fclose($handle);
+    $countInserts = doDump($database, $insertedComments, $countInserts);
+    $executionTime = microtime(true) - $_SERVER["REQUEST_TIME_FLOAT"];
+    echo "Actual/(Deleted)/Saved: " . $count . "/(" . $countDeleted . ")/" . ($actualCount) . " at " . $countInserts . " inserts.";
+    echo "<br>";
+    echo "ExecutionTime: " . $executionTime . " seconds.";
+    
+} else {
+    // error opening the file.
+} 
+
+
+
+function doDump($database, $insertedComments, $countInserts) {
+    if ($insertedComments !== "") {
+        $insertCommentsStatement = "INSERT INTO comments (comment_id, name_prefix, score, created_utc, body, parent_id, link_id, author, subreddit_id, subreddit) VALUES ";
+        // $insertCommentsStatement = "INSERT INTO comments (comment_id, name_prefix, score, created_utc, body) VALUES ";
+        // $insertParentsStatement = "INSERT INTO parents (parent_id, comment_id) VALUES ";
+        // $insertLinksStatement = "INSERT INTO links (link_id, comment_id) VALUES ";
+        // $insertAuthorsStatement = "INSERT INTO authors (author_id, comment_id) VALUES ";
+        // $insertSubredditsStatement = "INSERT INTO subreddits (subreddit_id, subreddit_name, comment_id) VALUES ";
+        $insertCommentsStatement .= $insertedComments;
+        $query = rtrim($insertCommentsStatement, ", ");
+        $db = $database->startMySQLi();
+        $db->autocommit(false);
+        $db->query($query) or die;
+        $db->commit();
+        $database->killMySQLi($db);
+        // $insertParentsStatement .= $insertedParents;
+        // $insertLinksStatement .= $insertedLinks;
+        // $insertAuthorsStatement .= $insertedAuthors;
+        // $insertSubredditsStatement .= $insertedSubreddits;
+        // if ($db->query(rtrim($insertCommentsStatement, ", ")) === false) {
+        //     var_dump(rtrim($insertCommentsStatement, ", "));
+        // }
+        // if ($db->query(rtrim($insertParentsStatement, ", ")) === false) {
+        //     var_dump(rtrim($insertSubredditsStatement, ", "));
+        // };
+        // if ($db->query(rtrim($insertLinksStatement, ", ")) === false) {
+        //     var_dump(rtrim($insertAuthorsStatement, ", "));
+        // };
+        // if ($db->query(rtrim($insertAuthorsStatement, ", ")) === false) {
+        //     var_dump(rtrim($insertLinksStatement, ", "));
+        // };
+        // if ($db->query(rtrim($insertSubredditsStatement, ", ")) === false) {
+        //     var_dump(rtrim($insertParentsStatement, ", "));
+        // };
+        // $insertedParents = "";
+        // $insertedLinks = "";
+        // $insertedAuthors = "";
+        // $insertedSubreddits = "";
+        $countInserts++;
+        return $countInserts;
+    }
+    return $countInserts;
+}
+function replaceString($unescaped) {
+    $replacements = array(
+       "\x00"=>'\x00',
+       "\n"=>'\n',
+       "\r"=>'\r',
+       "\\"=>'\\\\',
+       "'"=>"\'",
+       '"'=>'\"',
+       "\x1a"=>'\x1a'
+    );
+    return strtr($unescaped,$replacements);
+  }
