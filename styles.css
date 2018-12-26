@@ -276,6 +276,17 @@ body {
     padding: 10px;
   }
   
+  .IP_calendar {
+    background: #4bc2fa;
+    border:1px solid black;
+    border-bottom: 5px solid black;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    margin: 20px;
+    padding: 2px;
+    word-wrap: break-word;
+  }
   .alert-fail {
     background-color: #db5f5f;
     margin: 5px;
