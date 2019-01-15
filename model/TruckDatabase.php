@@ -8,21 +8,21 @@ class TruckDatabase extends Database {
             throw new addJobException("End Date is later than Start Date!?");
         }
         $queryDriver = "SELECT * FROM (SELECT * FROM drivers WHERE persnr NOT IN
-         (SELECT driver FROM jobs WHERE `start_time - INTERVAL 1 DAY` BETWEEN '$startDate' AND '$endDate' 
-         OR `end_time + INTERVAL 1 DAY` BETWEEN '$startDate' AND '$endDate') 
-         AND ce_license >= $trailer AND unavailable = '0000-00-00') AS selection 
-         WHERE persnr = '$driver'";
+         (SELECT driver FROM jobs WHERE start_time BETWEEN ? - INTERVAL 1 DAY AND ? + INTERVAL 1 DAY 
+         OR end_time BETWEEN ?- INTERVAL 1 DAY AND ? + INTERVAL 1 DAY) 
+         AND ce_license >= ? AND unavailable = '0000-00-00') AS selection 
+         WHERE persnr = ?";
 
-        if ($this->checkQuery($queryDriver)) {
+        if ($this->checkSafeQuery($queryDriver, $startDate, $endDate, $trailer, $driver)) {
             throw new addJobException("Driver not usable for this job!");
         }
         $queryTruck = "SELECT * FROM (SELECT * FROM trucks WHERE regnr NOT IN
-         (SELECT truck FROM jobs WHERE `start_time - INTERVAL 1 DAY` BETWEEN '$startDate' AND '$endDate' 
-         OR `end_time + INTERVAL 1 DAY` BETWEEN '$startDate' AND '$endDate') 
-         AND trailer >= '$trailer') AS selection 
-         WHERE regnr = '$truck'";
+         (SELECT truck FROM jobs WHERE start_time BETWEEN ? - INTERVAL 1 DAY AND ? + INTERVAL 1 DAY
+         OR end_time BETWEEN ? - INTERVAL 1 DAY AND ? + INTERVAL 1 DAY) 
+         AND unavailable_until = '0000-00-00' AND trailer >= ?) AS selection 
+         WHERE regnr = ?";
 
-        if ($this->checkQuery($queryTruck)) {
+        if ($this->checkSafeQuery($queryTruck, $startDate, $endDate, $trailer, $truck)) {
             throw new addJobException("Truck not usable for this job!");
         }
         $queryContractor = "SELECT * FROM contractors WHERE name = '$contractor'";
@@ -39,21 +39,64 @@ class TruckDatabase extends Database {
         if ($description == "") {
             throw new addJobException("Missing Description!?");
         }
-        $queryInsert = "INSERT INTO jobs (start_time, end_time, location, description, truck, contractor, driver, contact)";
-        $queryVals = "VALUES ('$startDate', '$endDate', '$address', '$description', '$truck', '$contractor', '$driver', '$contact')";
-        $queryAdd = $queryInsert . $queryVals;
-        $this->addJob($queryAdd);
+        $this->addJob($startDate, $endDate, $address, $description, $truck, $contractor, $driver, $contact);
     }
 
-    private function addJob($query) {
+    public function addJob($startDate, $endDate, $address, $description, $truck, $contractor, $driver, $contact) {
+        $queryInsert = "INSERT INTO jobs (start_time, end_time, location, description, truck, contractor, driver, contact)";
+        $queryVals = " VALUES (?,?,?,?,?,?,?,?)";
+        $statement = $queryInsert . $queryVals;
         $mysqli = $this->startMySQLi();
-        $mysqli->query($query);
-        $this->killMySQLi($mysqli);
+        try {
+            if (!($prepStatement = $mysqli->prepare($statement))) {
+                throw new \Exception("Prepare failed: (" . $mysqli->errno . ") " . $mysqli->error);
+            }
+            if (!$prepStatement->bind_param("ssssssss", $startDate, $endDate, $address, $description, $truck, $contractor, $driver, $contact)) {
+                throw new \Exception( "Binding parameters failed: (" 
+                . $prepStatement->errno . ") " . $prepStatement->error);
+            }
+            if (!$prepStatement->execute()) {
+                throw new \Exception("Execute failed: (" 
+                . $prepStatement->errno . ") " . $prepStatement->error);
+            }
+        } catch (Exception $error) {
+            throw $error;
+        } finally {
+            $this->killMySQLi($mysqli);
+        }
+    }
+
+    private function checkSafeQuery($statement, $startDate, $endDate, $trailer, $variable) {
+        $mysqli = $this->startMySQLi();
+        try {
+            if (!($prepStatement = $mysqli->prepare($statement))) {
+                throw new \Exception("Prepare failed: (" . $mysqli->errno . ") " . $mysqli->error);
+            }
+            if (!$prepStatement->bind_param("ssssss", $startDate, $endDate, $startDate, $endDate, $trailer, $variable)) {
+                throw new \Exception( "Binding parameters failed: (" 
+                . $prepStatement->errno . ") " . $prepStatement->error);
+            }
+            if (!$prepStatement->execute()) {
+                throw new \Exception("Execute failed: (" 
+                . $prepStatement->errno . ") " . $prepStatement->error);
+            }
+            $result = $prepStatement->get_result();
+            if ($result && $result->num_rows === 1) {
+                return false;
+            } else {
+                return true;
+            }
+        } catch (Exception $error) {
+            throw $error;
+        } finally {
+            $this->killMySQLi($mysqli);
+        }
     }
 
     private function checkQuery($query) {
         $mysqli = $this->startMySQLi();
         $result = $mysqli->query($query);
+        echo $mysqli->error;
         $this->killMySQLi($mysqli);
         if ($result && $result->num_rows === 1) {
             return false;
@@ -88,9 +131,9 @@ class TruckDatabase extends Database {
     public function getTrucksForDays($startDate, $endDate, $trailer) {
         $mysqli = $this->startMySQLi();
         $query = "SELECT * FROM trucks WHERE regnr NOT IN
-         (SELECT truck FROM jobs WHERE start_time BETWEEN '$startDate' AND '$endDate' 
-         OR end_time BETWEEN '$startDate' AND '$endDate') 
-          AND trailer >= '$trailer'";
+         (SELECT truck FROM jobs WHERE start_time BETWEEN '$startDate - INTERVAL 1 DAY' AND '$endDate + INTERVAL 1 DAY' 
+         OR end_time BETWEEN '$startDate - INTERVAL 1 DAY' AND '$endDate + INTERVAL 1 DAY') 
+          AND unavailable_until = '0000-00-00' AND trailer >= '$trailer'";
         $result = $mysqli->query($query);
         $this->killMySQLi($mysqli);
         $trucksArray = [];
@@ -150,9 +193,9 @@ class TruckDatabase extends Database {
             $dayAvail = new DayAvailables($date);
             array_push($days, $dayAvail);
             $query .= "(SELECT '$date' AS date, persnr, regnr FROM drivers CROSS JOIN trucks WHERE persnr
-            NOT IN (SELECT driver FROM jobs WHERE '$date' BETWEEN 'jobs.start_time' AND 'jobs.end_time')
+            NOT IN (SELECT driver FROM jobs WHERE '$date' BETWEEN jobs.start_time AND jobs.end_time)
             AND regnr
-            NOT IN (SELECT truck FROM jobs WHERE '$date' BETWEEN 'jobs.start_time' AND 'jobs.end_time')
+            NOT IN (SELECT truck FROM jobs WHERE '$date' BETWEEN jobs.start_time AND jobs.end_time)
             AND unavailable = '0000-00-00' AND unavailable_until = '0000-00-00' 
             AND ce_license >= $trailer AND trailer >= $trailer AND ((max_weight - min_weight)*($trailer+1)) >= $load
             GROUP BY regnr, persnr)
@@ -211,8 +254,8 @@ class TruckDatabase extends Database {
     public function getDriversForDays($startDate, $endDate, $trailer) {
         $mysqli = $this->startMySQLi();
         $query = "SELECT * FROM drivers WHERE persnr NOT IN
-         (SELECT driver FROM jobs WHERE start_time BETWEEN '$startDate' AND '$endDate' 
-        OR end_time BETWEEN '$startDate' AND '$endDate') 
+         (SELECT driver FROM jobs WHERE start_time BETWEEN '$startDate - INTERVAL 1 DAY' AND '$endDate + INTERVAL 1 DAY'
+        OR end_time BETWEEN '$startDate - INTERVAL 1 DAY' AND '$endDate + INTERVAL 1 DAY') 
         AND ce_license >= $trailer AND unavailable = '0000-00-00'";
         $result = $mysqli->query($query);
         $this->killMySQLi($mysqli);
@@ -352,40 +395,4 @@ class TruckDatabase extends Database {
 
         return $weightsArray;
     }
-
-    // public function updateMessageWithId( $message, int $id) {
-    //     $statement = "UPDATE messages SET message = ? WHERE id = ?";
-    //     $this->executeFirstOnSecondByStatement($message, $id, $statement);
-    // }
-
-    // public function saveMessageForUser( $message,  $username) {
-    //     $statement = "INSERT INTO messages (message, username) VALUES (?,?)";
-    //     $this->executeFirstOnSecondByStatement($message, $username, $statement);
-    // }
-
-    // public function deleteMessageWithId( $id,  $username) {
-    //     $statement = "DELETE FROM messages WHERE id = ? AND username = ?";
-    //     $this->executeFirstOnSecondByStatement($id, $username, $statement);
-    // }
-
-    // private function executeFirstOnSecondByStatement( $first,  $second,  $statement) {
-    //     $mysqli = $this->startMySQLi();
-    //     try {
-    //         if (!($prepStatement = $mysqli->prepare($statement))) {
-    //             throw new \Exception("Prepare failed: (" . $mysqli->errno . ") " . $mysqli->error);
-    //         }
-    //         if (!$prepStatement->bind_param("ss", $first, $second)) {
-    //             throw new \Exception( "Binding parameters failed: (" 
-    //             . $prepStatement->errno . ") " . $prepStatement->error);
-    //         }
-    //         if (!$prepStatement->execute()) {
-    //             throw new \Exception("Execute failed: (" 
-    //             . $prepStatement->errno . ") " . $prepStatement->error);
-    //         }
-    //     } catch (Exception $error) {
-    //         throw $error;
-    //     } finally {
-    //         $this->killMySQLi($mysqli);
-    //     }
-    // }
 }

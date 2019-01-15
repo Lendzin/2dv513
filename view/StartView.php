@@ -44,6 +44,14 @@ class StartView {
                 <div><p class="unselectable header">SITENAME_UNDERSCORE</p></div>
                 <div class="maindiv">
                     <h1>Functionality</h1>
+                    ' . $this->userWantsToSearchDate() . '
+                    ' . $this->userWantsToAddJob() . '
+                    ' . $this->userWantsToCheckContractor() . '
+                    ' . $this->userWantsToSearchJobs() . '
+                    ' . $this->userWantsToListTrucksForTheDay() . '
+                    ' . $this->userWantsToListDriversForTheDay() . '
+                    ' . $this->userWantsTorRetrieveAllContactsWithContractors() . '
+                    ' . $this->userWantsToSeeTrucksInNeedOfMaintenence() . '
                 <div class="messagebox">
                     <form action="?" class="editform" method="post">
                     <Label>Which date can we add a job in a timeperiod?</label><br>
@@ -54,7 +62,6 @@ class StartView {
                     <input type="submit" class="button" name="' . self::$searchDate . '" value="Search Date"/>
                 </form>
                 </div>
-                ' . $this->userWantsToSearchDate() . '
                     <div class="messagebox">
                         <form action="?" class="editform" method="post">
                         <Label>Add job to database</label><br>
@@ -75,7 +82,6 @@ class StartView {
                         <input type="submit" class="button" name="' . self::$addJob . '" value="Add Job"/>
                         </form>
                     </div>
-                    ' . $this->userWantsToAddJob() . '
                     <div class="messagebox">
                         <form action="?" class="editform" method="post">
                         <Label>When did we last work for?</label><br>
@@ -83,7 +89,6 @@ class StartView {
                         <input type="submit" class="button" name="' . self::$searchContractor . '" value="Search Contractor"/>
                         </form>
                     </div>
-                    ' . $this->userWantsToCheckContractor() . '
                     <div class="messagebox">
                         <form action="?" class="editform" method="post">
                         <Label>Which jobs do we have within timeframe by?</label><br>
@@ -93,7 +98,6 @@ class StartView {
                         <input type="submit" class="button" name="' . self::$searchJobs . '" value="Search Jobs"/>
                         </form>
                     </div>
-                    ' . $this->userWantsToSearchJobs() . '
                     <div class="messagebox">
                         <form action="?" class="editform" method="post">
                         <Label>List trucks available for specified day</label><br>
@@ -102,7 +106,6 @@ class StartView {
                         <input type="submit" class="button" name="' . self::$searchTruck . '" value="Search Truck"/>
                     </form>
                     </div>
-                    ' . $this->userWantsToListTrucksForTheDay() . '
                     <div class="messagebox">
                         <form action="?" class="editform" method="post">
                         <Label>List drivers available for specified day</label><br>
@@ -111,14 +114,12 @@ class StartView {
                         <input type="submit" class="button" name="' . self::$searchDriver . '" value="Search Driver"/>
                     </form>
                     </div>
-                    ' . $this->userWantsToListDriversForTheDay() . '
                     <div class="messagebox">
                     <form action="?" class="editform" method="post">
                     <Label>Get all contacts with their contractors</label><br>
                     <input type="submit" class="button" name="' . self::$retrieveContacts . '" value="Get Contacts"/>
                     </form>
                     </div>
-                    ' . $this->userWantsTorRetrieveAllContactsWithContractors() . '
                     <div class="messagebox">
                         <form action="?" class="editform" method="post">
                         <Label>Which trucks have service, lubrication or inspection within timeframe?</label><br>
@@ -127,7 +128,6 @@ class StartView {
                         <input type="submit" class="button" name="' . self::$searchService. '" value="Search Service"/>
                     </form>
                     </div>
-                    ' . $this->userWantsToSeeTrucksInNeedOfMaintenence() . '
                     <div class="container">
                         ' . $this->renderTimeTag() . '
                     </div>
@@ -156,25 +156,25 @@ class StartView {
         }
     }
     private function getTruckOptions() {
-        if ($this->datesAreSet()) {
-        $result = $this->db->getTrucksForDays($this->fixDateString(($this->getStartDate())),$this->fixDateString(($this->getEndDate())),$this->getTrailerStatus());
-        $returnString = '<option>---</option>';
-        foreach ($result as $value) {
-            $returnString .= '<option value = "' . $value->getRegnr() . '">' . $value->getRegnr() . '</option>';
-        }
-        return $returnString;
-        } else 
+        // if ($this->datesAreSet()) {
+        // $result = $this->db->getTrucksForDays($this->fixDateString(($this->getStartDate())),$this->fixDateString(($this->getEndDate())),$this->getTrailerStatus());
+        // $returnString = '<option>---</option>';
+        // foreach ($result as $value) {
+        //     $returnString .= '<option value = "' . $value->getRegnr() . '">' . $value->getRegnr() . '</option>';
+        // }
+        // return $returnString;
+        // } else 
         return $this->getTrucksDropDown();
     }
     private function getDriverOptions() {
-        if ($this->datesAreSet()) {
-        $result = $this->db->getDriversForDays($this->fixDateString(($this->getStartDate())),$this->fixDateString(($this->getEndDate())),$this->getTrailerStatus());
-        $returnString = '<option>---</option>';
-        foreach ($result as $value) {
-            $returnString .= '<option value="' . $value->getPersnr() . '">' . $value->getName() . '</option>';
-        }
-        return $returnString;
-        } else 
+        // if ($this->datesAreSet()) {
+        // $result = $this->db->getDriversForDays($this->fixDateString(($this->getStartDate())),$this->fixDateString(($this->getEndDate())),$this->getTrailerStatus());
+        // $returnString = '<option>---</option>';
+        // foreach ($result as $value) {
+        //     $returnString .= '<option value="' . $value->getPersnr() . '">' . $value->getName() . '</option>';
+        // }
+        // return $returnString;
+        // } else 
         return $this->getDriversDropDown();
     
     }
