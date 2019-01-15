@@ -167,17 +167,17 @@ body {
     margin: 5px;
     text-align: center;
   }
-  
-  .unselectable {
+  /* .unselectable {
     -khtml-user-drag: none;
     -o-user-drag: none;
     -moz-user-drag: none;
     -webkit-user-drag: none;
-    -moz-user-select: none; /* Firefox */
-    -ms-user-select: none; /* IE10+/Edge */
-    user-select: none; /* Standard */
-    -webkit-user-select: none; /* Safari */  
-  }
+    -moz-user-select: none; 
+    -ms-user-select: none; 
+    user-select: none; 
+    -webkit-user-select: none; 
+  } */
+
   div {
     margin: 2px;
   }
@@ -234,6 +234,14 @@ body {
     padding: 4px;
     word-wrap: break-word;
   }
+  .table td {
+    text-align: center; 
+    vertical-align: middle;
+  }
+  .redcolorTD {
+    color: #db5f5f
+  }
+
   .flexbox {
     flex:1;
     margin: 20px;
@@ -277,14 +285,8 @@ body {
   }
   
   .IP_calendar {
-    background: #4bc2fa;
-    border:1px solid black;
-    border-bottom: 5px solid black;
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    margin: 20px;
-    padding: 2px;
+    background: white;
+
     word-wrap: break-word;
   }
   .alert-fail {
@@ -353,16 +355,7 @@ body {
     text-align: center;
   }
   
-  .unselectable {
-    -khtml-user-drag: none;
-    -o-user-drag: none;
-    -moz-user-drag: none;
-    -webkit-user-drag: none;
-    -moz-user-select: none; /* Firefox */
-    -ms-user-select: none; /* IE10+/Edge */
-    user-select: none; /* Standard */
-    -webkit-user-select: none; /* Safari */  
-  }
+
   
   
   

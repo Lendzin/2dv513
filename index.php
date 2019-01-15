@@ -2,43 +2,32 @@
 
 require_once('AppSettings.php');
 require_once('controller/MainController.php');
-require_once('controller/FeedbackController.php');
-require_once('controller/LoginController.php');
-require_once('controller/RegisterController.php');
-require_once('controller/CookieController.php');
-require_once('controller/NoteController.php');
-require_once('view/LoginView.php');
-require_once('view/RegisterView.php');
-require_once('view/LayoutView.php');
-require_once('view/CookieView.php');
-require_once('view/NoteView.php');
 require_once('view/StartView.php');
-require_once('model/Session.php');
 require_once('model/Database.php');
-require_once('model/UserDatabase.php');
-require_once('model/MessageDatabase.php');
-require_once('model/User.php');
-require_once('model/ValidatedUser.php');
-require_once('model/Username.php');
-require_once('model/Password.php');
-require_once('model/Message.php');
-require_once('model/errors/PasswordTooShortException.php');
-require_once('model/errors/UsernameInvalidCharsException.php');
-require_once('model/errors/UsernameTooShortException.php');
-require_once('model/errors/UserExistsException.php');
-require_once('view/calendar/tc_calendar.php');
+require_once('model/TruckDatabase.php');
+require_once('model/Contact.php');
+require_once('model/Contractor.php');
+require_once('model/Service.php');
+require_once('model/Job.php');
+require_once('model/Truck.php');
+require_once('model/Driver.php');
+require_once('model/addJobException.php');
+require_once('model/DayAvailables.php');
+
 
 session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-try {
+// try {
     $mainController = new \controller\MainController();
     $mainController->run();
-} catch (Exception $error) {
-    // LOG ERROR 
-    // haven't found how to log an error in nginx without throwing, and throwing negates reset.
-    header('Location: ?'); // reset app on error, untested.
-    exit();
-}
+// } catch (Exception $error) {
+//     // LOG ERROR 
+//     // haven't found how to log an error in nginx without throwing, and throwing negates reset.
+//     header('Location: ?'); // reset app on error, untested.
+//     exit();
+// }
 // $database = new \model\Database();
 // $truckInsert = "INSERT INTO trucks (regnr, model, min_weight, max_weight, axels, trailer, equipment, build_year, warranty, last_tested, last_service, last_lubrication, unavailable_period, rental_period) "; 
 // $truckVal1 = "VALUES ('BXP465', 'SCANIA R480', '32500', '48000', '4', '1', 'plow, salter, hooklift', '2010', '2015-10-10', '2018-07-19', '2018-11-01', '2018-12-01', '0000-00-00', '0000-00-00')";
@@ -66,18 +55,18 @@ try {
 // runQueryForArray($database, $contractors, $contractorInsert);
 
 
-// $driverInsert = "INSERT INTO drivers (persnr, name, address, email, phone, contract_start, contract_end, d_license, exp_ykb, fuel_card, status)";
-// $driverVal1 =  "VALUES ('198409080051', 'Jonas Strandqvist', 'Dovregatan 20, 16436, Kista', 'lendzin@gmail.com', '0046733502189', '2004-06-12', '2015-09-22', 'ABCE', '2019-07-12', '9292838727282', 'unavailable')";
-// $driverVal2 =  "VALUES ('196112310023', 'Billy Strandqvist', 'Oxdragarbacken 11, xxxxx, Norrtalje', 'oxdragarbacken@gmail.com', '0046708392411', '1990-03-22', '0000-00-00', 'BCE', '2022-03-14', '12311125466', 'available')";
-// $driverVal3 =  "VALUES ('198212160246', 'Andreas Strandqvist', 'Avldalsvagen 21, 16575 Hassleby', 'likvidation@gmail.com', '0046723125223', '2004-06-12', '2015-09-22', 'BCE', '2020-06-14', '2242638221222', 'available')";
-// $driverVal4 =  "VALUES ('197307020240', 'Fredrik Bergkvist', 'Akersbergavagen 12, xxxxx, Akersberga', 'fredrik@gmail.com', '0046733502189', '2004-06-12', '2015-09-22', 'BC', '2019-07-12', '1292835767272', 'available')";
-// $driverVal5 =  "VALUES ('198602140045', 'Peter Hammar', 'Tabyvagen 1, xxxxx, Taby', 'peter@gmail.com', '0046987402345', '2004-06-12', '2015-09-22', 'CE', '2019-07-12', '2292438757687', 'available')";
-// $driverVal6 =  "VALUES ('198905080230', 'Bert Adil', 'Bergsvagen 121, xxxxx, Danderyd', 'bert@gmail.com', '0046879645888', '2004-06-12', '2015-09-22', 'BC', '2019-07-12', '6276858323282', 'available')";
-// $driverVal7 =  "VALUES ('199011020167', 'Rolf Mojner', 'Tapetserarvagen 14, xxxxx, Norrtalje', 'rolf@gmail.com', '0046119874758', '2004-06-12', '2015-09-22', 'BC', '2019-07-12', '2342833467282', 'vacation')";
-// $driverVal8 =  "VALUES ('199509120220', 'Erik Stenkvist', 'Kvistvagen 421, xxxxx, Bergshamra', 'erik@gmail.com', '0046098277833', '2004-06-12', '2015-09-22', 'BCE', '2019-07-12', '2342834726682', 'available')";
-// $driverVal9 =  "VALUES ('196406240022', 'Rickard Brunholf', 'Hemnasvagen 220, xxxxx, Upplands Vasby', 'rickard@gmail.com', '0046733892888', '2004-06-12', '2015-09-22', 'BCE', '2019-07-12', '234283556282', 'available')";
-// $driverVal10 = "VALUES ('195606110205', 'John Bergman', 'Rimbovagen 140, xxxxx, Rimbo', 'john@gmail.com', '0046720990034', '2004-06-12', '2015-09-22', 'BCE', '2019-07-12', '5232855527282', 'available')";
-// $driverVal11 = "VALUES ('198104180254', 'Stefan Klingberg', 'Vallentunavagen 9, xxxxx, Vallentuna', 'stefan@gmail.com', '0046789828223', '2004-06-12', '2015-09-22', 'ABCE', '2019-07-12', '5295568922282', 'sick')";
+// $driverInsert = "INSERT INTO drivers (persnr, name, address, email, phone, contract_start, contract_end, ce_license, exp_ykb, fuel_card, unavailable)";
+// $driverVal1 =  "VALUES ('198409080051', 'Jonas Strandqvist', 'Dovregatan 20, 16436, Kista', 'lendzin@gmail.com', '0046733502189', '2004-06-12', '2015-09-22', '1', '2019-07-12', '9292838727282', '2019-06-30')";
+// $driverVal2 =  "VALUES ('196112310023', 'Billy Strandqvist', 'Oxdragarbacken 11, xxxxx, Norrtalje', 'oxdragarbacken@gmail.com', '0046708392411', '1990-03-22', '0000-00-00', '1', '2022-03-14', '12311125466', '0000-00-00')";
+// $driverVal3 =  "VALUES ('198212160246', 'Andreas Strandqvist', 'Avldalsvagen 21, 16575 Hassleby', 'likvidation@gmail.com', '0046723125223', '2004-06-12', '2015-09-22', '1', '2020-06-14', '2242638221222', '0000-00-00')";
+// $driverVal4 =  "VALUES ('197307020240', 'Fredrik Bergkvist', 'Akersbergavagen 12, xxxxx, Akersberga', 'fredrik@gmail.com', '0046733502189', '2004-06-12', '2015-09-22', '0', '2019-07-12', '1292835767272', '0000-00-00')";
+// $driverVal5 =  "VALUES ('198602140045', 'Peter Hammar', 'Tabyvagen 1, xxxxx, Taby', 'peter@gmail.com', '0046987402345', '2004-06-12', '2015-09-22', 'CE', '2019-07-12', '2292438757687', '0000-00-00')";
+// $driverVal6 =  "VALUES ('198905080230', 'Bert Adil', 'Bergsvagen 121, xxxxx, Danderyd', 'bert@gmail.com', '0046879645888', '2004-06-12', '2015-09-22', '0', '2019-07-12', '6276858323282', '0000-00-00')";
+// $driverVal7 =  "VALUES ('199011020167', 'Rolf Mojner', 'Tapetserarvagen 14, xxxxx, Norrtalje', 'rolf@gmail.com', '0046119874758', '2004-06-12', '2015-09-22', '0', '2019-07-12', '2342833467282', '2018-12-29')";
+// $driverVal8 =  "VALUES ('199509120220', 'Erik Stenkvist', 'Kvistvagen 421, xxxxx, Bergshamra', 'erik@gmail.com', '0046098277833', '2004-06-12', '2015-09-22', '1', '2019-07-12', '2342834726682', '0000-00-00')";
+// $driverVal9 =  "VALUES ('196406240022', 'Rickard Brunholf', 'Hemnasvagen 220, xxxxx, Upplands Vasby', 'rickard@gmail.com', '0046733892888', '2004-06-12', '2015-09-22', '1', '2019-07-12', '234283556282', '0000-00-00')";
+// $driverVal10 = "VALUES ('195606110205', 'John Bergman', 'Rimbovagen 140, xxxxx, Rimbo', 'john@gmail.com', '0046720990034', '2004-06-12', '2015-09-22', '1', '2019-07-12', '5232855527282', '0000-00-00')";
+// $driverVal11 = "VALUES ('198104180254', 'Stefan Klingberg', 'Vallentunavagen 9, xxxxx, Vallentuna', 'stefan@gmail.com', '0046789828223', '2004-06-12', '2015-09-22', '1', '2019-07-12', '5295568922282', '2019-01-24')";
 // $drivers = array($driverVal1, $driverVal2, $driverVal3, $driverVal4, $driverVal5, $driverVal6, $driverVal7, $driverVal8, $driverVal9, $driverVal10, $driverVal11);
 // runQueryForArray($database, $drivers, $driverInsert);
 
